@@ -15,9 +15,6 @@ class VideoPlayer:
   def terminate(self):
     self.ctx.free()
     self.mpv.terminate()
-    
-
-    
 
   def __init__(self,filename):
     self.filename = filename
@@ -50,7 +47,6 @@ class VideoPlayer:
       address = glfw.get_proc_address(name.decode('utf8'))
       return ctypes.cast(address, ctypes.c_void_p).value
 
-
     proc_addr_wrapper = OpenGlCbGetProcAddrFn(get_process_address)
 
     self.ctx = MpvRenderContext(self.mpv, 'opengl', opengl_init_params={'get_proc_address': proc_addr_wrapper})
@@ -61,11 +57,16 @@ class VideoPlayer:
 
   def render(self):
 
-    videowindow, self.open = imgui.begin("Video window {}".format(self.filename), self.open)
+    videowindow, self.open = imgui.begin("Video window {}".format(self.filename), self.open, flags=imgui.WINDOW_NO_SCROLLBAR)
+
+    w,h = imgui.get_window_size()
+
+    if imgui.APPEARING:
+        imgui.set_window_size(400, 300)
 
     w,h = imgui.core.get_content_region_available()
     w=int(max(w,0))
-    h=int(max(h-80,0))
+    h=int(max(h-85,0))
 
     if not self.open:
       imgui.end()
@@ -73,6 +74,7 @@ class VideoPlayer:
       return
 
     if self.ctx.update() and w>0 and h>0:
+      
 
       gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, self.fbo)
       gl.glBindTexture(gl.GL_TEXTURE_2D, self.texture);
@@ -86,32 +88,39 @@ class VideoPlayer:
 
     try:
       imgui.text("Filename: {} fbo: {} tex: {}".format(self.mpv.filename,self.fbo,self.texture))
+    except:
+      imgui.text("Filename: {} fbo: {} tex: {}".format(self.mpv.filename,self.fbo,self.texture))
+
+    try:
       imgui.text("{0:.2f}s/{1:.2f}s ({2:.2f}s remaining)".format(self.mpv.time_pos,self.mpv.duration,self.mpv.playtime_remaining))
     except:
-      pass
+      imgui.text("Loading...")
 
     imgui.image(self.texture, w,h )
-    
 
+
+    imgui.push_item_width(-1)
 
     changed, values = imgui.slider_float(
-        "Playback Percentage", *self.playbackPos,
+        "##Playback Percentage", *self.playbackPos,
         min_value=0.0, max_value=100.0,
-        format="%.0f",
+        format="Playback Percentage %.0f",
         power=1.0
     )
 
     if changed and values:
-      self.mpv.command('seek',values,'absolute-percent')
+      try:
+        self.mpv.command('seek',values,'absolute-percent')
+      except:
+        pass
       self.playbackPos = (values,)
     elif self.mpv.percent_pos:
       self.playbackPos = (self.mpv.percent_pos,)
 
-
     changed, values = imgui.slider_float(
-        "Volume", *self.volume,
+        "##Volume", *self.volume,
         min_value=0.0, max_value=100.0,
-        format="%.0f",
+        format="Volume %.0f",
         power=1.0
     )
 
@@ -120,6 +129,8 @@ class VideoPlayer:
       self.volume = (values,)
     elif self.mpv.volume:
       self.volume = (self.mpv.volume,)
+
+
     imgui.end()
 
 def main():
@@ -149,7 +160,8 @@ def main():
             videoWindow.render()
         else:
           imgui.core.set_next_window_position(10,10)
-          imgui.core.set_next_window_size(500,10)
+          winw,winh = glfw.get_window_size(window)
+          imgui.core.set_next_window_size(winw-20,10)
 
           imgui.begin("##Message", True, flags=imgui.WINDOW_NO_SCROLLBAR|imgui.WINDOW_NO_RESIZE|imgui.WINDOW_NO_TITLE_BAR|imgui.WINDOW_NO_MOVE )
           imgui.text("Drop one or more video files onto this window to play")
