@@ -21,11 +21,7 @@ class VideoPlayer:
 
   def __init__(self,filename):
     self.filename = filename
-    self.fbo = None
     self.open = True
-
-
-  def init(self):
 
     self.fbo = gl.glGenFramebuffers(1)
     gl.glBindFramebuffer(gl.GL_FRAMEBUFFER, self.fbo)
@@ -62,14 +58,10 @@ class VideoPlayer:
     self.mpv.play(self.filename)
     self.mpv.volume=0
 
+
   def render(self):
 
-
-
     videowindow, self.open = imgui.begin("Video window {}".format(self.filename), self.open)
-
-    if self.fbo is None:
-      self.init()
 
     w,h = imgui.core.get_content_region_available()
     w=int(max(w,0))
@@ -203,18 +195,7 @@ def impl_glfw_init():
         print("Could not initialize Window")
         exit(1)
 
-    def get_process_address(_, name):
-        print(name)
-        address = glfw.get_proc_address(name.decode('utf8'))
-        return ctypes.cast(address, ctypes.c_void_p).value
-
-    proc_addr_wrapper = OpenGlCbGetProcAddrFn(get_process_address)
-
-    ctx = None
-    mpv = MPV(log_handler=print, loglevel='debug')
-    
     return window
-
 
 if __name__ == "__main__":
     main()
